@@ -1,5 +1,7 @@
 /**
- * virtmem.c 
+ /* virtmem.c 
+ ecem kuloğlu 71957
+ ege uğur amasya 71484
  */
 
 #include <stdio.h>
