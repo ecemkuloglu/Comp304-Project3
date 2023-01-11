@@ -12,11 +12,11 @@
 
 #define TLB_SIZE 16
 #define PAGES 1024
-#define PAGE_MASK 1023/* TODO */
+#define PAGE_MASK 1047552 // =0xFFC00 /* TODO */
 
 #define PAGE_SIZE 1024
 #define OFFSET_BITS 10
-#define OFFSET_MASK 1023/* TODO */
+#define OFFSET_MASK 1023 // =0x3FF /* TODO */
 
 #define MEMORY_SIZE PAGES * PAGE_SIZE
 
@@ -51,12 +51,12 @@ int max(int a, int b)
 /* Returns the physical address from TLB or -1 if not present. */
 int search_tlb(unsigned char logical_page) {
     /* TODO */
-    int size = TLB_SIZE;
-    while(size != 0) { // search TLB
+    int size = 0;
+    while(size != TLB_SIZE) { // search TLB
       if (logical_page == tlb[size].logical) { //check the virtual addresses if they exist 
        return tlb[size].physical; //returns the physical address
       }
-      size--;
+      size++;
     }
     return -1; //returns -1 if virtual address is not present on TLB
     
@@ -71,16 +71,6 @@ void add_to_tlb(unsigned char logical, unsigned char physical) {
     tlb[index].logical = logical;
     tlb[index].physical = physical;
     tlbindex++;
-}
-
-void setmemory(int physical_page, int logical_page){
-    int i = 0;
-    while(i<PAGE_SIZE){
-        i++;
-        //change the main memory
-        main_memory[physical_page * PAGE_SIZE + i] = *(backing + logical_page * PAGE_SIZE + i);
-    }
-    pagetable[logical_page] = physical_page;
 }
 
 int main(int argc, const char *argv[])
@@ -121,7 +111,8 @@ int main(int argc, const char *argv[])
     /* TODO 
     / Calculate the page offset and logical page number from logical_address */
     int offset = logical_address & OFFSET_MASK;
-    int logical_page = logical_address >> OFFSET_BITS;
+    int logical_page = logical_address & PAGE_MASK;
+    logical_page = logical_address >> 10;
     ///////
     
     int physical_page = search_tlb(logical_page);
@@ -135,10 +126,11 @@ int main(int argc, const char *argv[])
       // Page fault
       if (physical_page == -1) {
           /* TODO */
+          physical_page = free_page; //allocating new physical memory address from the available backing storage
+          memcpy(main_memory + free_page * PAGE_SIZE, backing + logical_page * PAGE_SIZE, PAGE_SIZE);
+          pagetable[logical_page] = physical_page; //mapping the new physical address to the logical address
+          free_page++; //incrementing free page number to update the pointer for backing storage for further use
           page_faults++;
-          physical_page = free_page;
-          setmemory(physical_page, logical_page);
-          free_page++;
       }
       add_to_tlb(logical_page, physical_page);
     }
